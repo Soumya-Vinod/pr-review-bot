@@ -1,0 +1,36 @@
+{
+  "action": "closed",
+  "number": 7,
+  "pull_request": {
+    "number": 7,
+    "title": "Add feature",
+    "body": "Adds a feature.",
+    "draft": false,
+    "state": "open",
+    "head": {
+      "sha": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+      "ref": "feature"
+    },
+    "base": {
+      "sha": "0000000000000000000000000000000000000001",
+      "ref": "main"
+    },
+    "user": {
+      "login": "octocat",
+      "type": "User"
+    }
+  },
+  "repository": {
+    "id": 1001,
+    "name": "pr-bot-playground",
+    "full_name": "octo-org/pr-bot-playground",
+    "private": false
+  },
+  "installation": {
+    "id": 4242
+  },
+  "sender": {
+    "login": "octocat",
+    "type": "User"
+  }
+}

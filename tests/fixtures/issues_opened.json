@@ -1,0 +1,20 @@
+{
+  "action": "opened",
+  "issue": {
+    "number": 3,
+    "title": "Bug"
+  },
+  "repository": {
+    "id": 1001,
+    "name": "pr-bot-playground",
+    "full_name": "octo-org/pr-bot-playground",
+    "private": false
+  },
+  "installation": {
+    "id": 4242
+  },
+  "sender": {
+    "login": "octocat",
+    "type": "User"
+  }
+}

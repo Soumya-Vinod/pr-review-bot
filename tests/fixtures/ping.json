@@ -1,0 +1,17 @@
+{
+  "zen": "Keep it logically awesome.",
+  "hook_id": 99,
+  "hook": {
+    "type": "App",
+    "events": [
+      "pull_request"
+    ]
+  },
+  "installation": {
+    "id": 4242
+  },
+  "sender": {
+    "login": "octocat",
+    "type": "User"
+  }
+}
