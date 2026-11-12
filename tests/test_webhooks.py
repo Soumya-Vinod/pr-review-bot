@@ -5,6 +5,8 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
 
+from app.config import Settings
+from app.main import create_app
 from app.webhooks import Ignored, PREvent, compute_signature, filter_event, verify_signature
 from tests.conftest import WEBHOOK_SECRET, load_fixture
 
@@ -88,7 +90,28 @@ def test_reviewable_pull_request_actions_are_accepted(client: TestClient, action
     response = post_event(client, "pull_request", payload, delivery="abc-123")
 
     assert response.status_code == 202
-    assert response.json() == {"accepted": True, "delivery_id": "abc-123"}
+    assert response.json() == {"queued": True, "delivery_id": "abc-123"}
+
+
+def test_duplicate_delivery_returns_202_duplicate(client: TestClient) -> None:
+    payload = load_fixture("pull_request_opened.json")
+
+    first = post_event(client, "pull_request", payload, delivery="same-id")
+    second = post_event(client, "pull_request", payload, delivery="same-id")
+
+    assert first.json() == {"queued": True, "delivery_id": "same-id"}
+    assert second.status_code == 202
+    assert second.json() == {"duplicate": True}
+
+
+def test_pull_request_without_database_returns_503(settings: Settings) -> None:
+    no_db = settings.model_copy(update={"database_url": None})
+    with TestClient(create_app(lambda: no_db, run_worker=False)) as client:
+        ping = post_event(client, "ping", load_fixture("ping.json"))
+        pr = post_event(client, "pull_request", load_fixture("pull_request_opened.json"))
+
+    assert ping.status_code == 200
+    assert pr.status_code == 503
 
 
 def test_draft_pull_request_is_ignored(client: TestClient) -> None:

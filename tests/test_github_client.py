@@ -6,8 +6,6 @@ import httpx
 import jwt
 import pytest
 import respx
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 from app.github_client import API_VERSION, CommentUpsert, GitHubAPIError, GitHubClient
 
@@ -23,20 +21,6 @@ class Clock:
 
     def __call__(self) -> float:
         return self.now
-
-
-@pytest.fixture(scope="module")
-def rsa_keys() -> tuple[str, str]:
-    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    private = key.private_bytes(
-        serialization.Encoding.PEM,
-        serialization.PrivateFormat.PKCS8,
-        serialization.NoEncryption(),
-    ).decode()
-    public = key.public_key().public_bytes(
-        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
-    ).decode()
-    return private, public
 
 
 @pytest.fixture
