@@ -38,6 +38,14 @@ class GitHubAPIError(Exception):
         super().__init__(f"GitHub API {method} {path} failed with {status_code}: {message}")
 
 
+@dataclass(frozen=True, slots=True)
+class CommentUpsert:
+    """Result of upsert_bot_comment."""
+
+    comment_id: int
+    created: bool
+
+
 @dataclass(slots=True)
 class _CachedToken:
     token: str
@@ -190,6 +198,13 @@ class GitHubClient:
 
     # --- API calls --------------------------------------------------------------
 
+    async def get_repo_installation(self, repo: str) -> int:
+        """Return the id of this App's installation on a repository (authenticated as the App)."""
+        response = await self._send(
+            "GET", f"/repos/{_check_repo(repo)}/installation", auth=f"Bearer {self.app_jwt()}"
+        )
+        return int(response.json()["id"])
+
     async def get_pull_request(
         self, installation_id: int, repo: str, number: int
     ) -> dict[str, Any]:
@@ -208,8 +223,8 @@ class GitHubClient:
 
     async def upsert_bot_comment(
         self, installation_id: int, repo: str, number: int, body: str, marker: str
-    ) -> int:
-        """Update the bot's marked comment on the PR, or create one. Returns the comment id."""
+    ) -> CommentUpsert:
+        """Update the bot's marked comment on the PR, or create one."""
         repo = _check_repo(repo)
         comments = await self._paginate(
             installation_id, f"/repos/{repo}/issues/{int(number)}/comments"
@@ -223,7 +238,7 @@ class GitHubClient:
                     f"/repos/{repo}/issues/comments/{int(comment['id'])}",
                     json={"body": body},
                 )
-                return int(response.json()["id"])
+                return CommentUpsert(int(response.json()["id"]), created=False)
 
         response = await self._installation_request(
             installation_id,
@@ -231,4 +246,4 @@ class GitHubClient:
             f"/repos/{repo}/issues/{int(number)}/comments",
             json={"body": body},
         )
-        return int(response.json()["id"])
+        return CommentUpsert(int(response.json()["id"]), created=True)

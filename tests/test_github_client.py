@@ -9,7 +9,7 @@ import respx
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from app.github_client import API_VERSION, GitHubAPIError, GitHubClient
+from app.github_client import API_VERSION, CommentUpsert, GitHubAPIError, GitHubClient
 
 API = "https://api.github.com"
 REPO = "octo-org/pr-bot-playground"
@@ -198,6 +198,16 @@ async def test_token_request_failure_raises_typed_error(gh: GitHubClient) -> Non
     assert excinfo.value.status_code == 401
 
 
+@respx.mock
+async def test_get_repo_installation_uses_app_jwt(gh: GitHubClient) -> None:
+    route = respx.get(f"{API}/repos/{REPO}/installation").mock(
+        return_value=httpx.Response(200, json={"id": 4242})
+    )
+
+    assert await gh.get_repo_installation(REPO) == 4242
+    assert route.calls[0].request.headers["Authorization"].startswith("Bearer ")
+
+
 async def test_invalid_repo_name_is_rejected(gh: GitHubClient) -> None:
     with pytest.raises(ValueError):
         await gh.get_pull_request(1, "../../admin", 1)
@@ -228,9 +238,9 @@ async def test_upsert_patches_existing_bot_comment(gh: GitHubClient) -> None:
     )
     post = respx.post(f"{API}/repos/{REPO}/issues/7/comments")
 
-    comment_id = await gh.upsert_bot_comment(1, REPO, 7, f"{MARKER}\nnew", MARKER)
+    result = await gh.upsert_bot_comment(1, REPO, 7, f"{MARKER}\nnew", MARKER)
 
-    assert comment_id == 2
+    assert result == CommentUpsert(comment_id=2, created=False)
     assert json.loads(patch.calls[0].request.content) == {"body": f"{MARKER}\nnew"}
     assert not post.called
 
@@ -243,7 +253,7 @@ async def test_upsert_ignores_marker_in_human_comment(gh: GitHubClient) -> None:
         return_value=httpx.Response(201, json={"id": 9})
     )
 
-    assert await gh.upsert_bot_comment(1, REPO, 7, "body", MARKER) == 9
+    assert await gh.upsert_bot_comment(1, REPO, 7, "body", MARKER) == CommentUpsert(9, True)
     assert post.called
 
 
@@ -255,4 +265,4 @@ async def test_upsert_creates_comment_when_none_exist(gh: GitHubClient) -> None:
         return_value=httpx.Response(201, json={"id": 11})
     )
 
-    assert await gh.upsert_bot_comment(1, REPO, 7, "body", MARKER) == 11
+    assert await gh.upsert_bot_comment(1, REPO, 7, "body", MARKER) == CommentUpsert(11, True)
